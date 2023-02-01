@@ -1,6 +1,8 @@
 package main
 
 import (
+	"crypto/tls"
+	"flag"
 	"github.com/golang/glog"
 	"golang.org/x/net/context"
 	"net/http"
@@ -9,11 +11,27 @@ import (
 	"syscall"
 )
 
+type ServerParameters struct {
+	port     string
+	certFile string
+	keyFile  string
+}
+
 func main() {
+	var parameters ServerParameters
+	flag.StringVar(&parameters.port, "port", "443", "server port")
+	flag.StringVar(&parameters.keyFile, "tlsKeyFile", "/etc/webhook/certs/key.pem", "File containing the x509 private key to --tlsCertFile.")
+	flag.StringVar(&parameters.certFile, "tlsCertFile", "/etc/webhook/certs/cert.pem", "File containing the x509 Certificate for HTTPS.")
+
+	pair, err := tls.LoadX509KeyPair(parameters.certFile, parameters.keyFile)
+	if err != nil {
+		glog.Errorf("Failed to load key pair: %v", err)
+	}
+
 	webhookServer := &WebhookServer{
 		server: &http.Server{
-			Addr: ":8080",
-			//TLSConfig: &tls.Config{Certificates: []tls.Certificate{pair}},
+			Addr:      ":8080",
+			TLSConfig: &tls.Config{Certificates: []tls.Certificate{pair}},
 		},
 	}
 	// 注册handler

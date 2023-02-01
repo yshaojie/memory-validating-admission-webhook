@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"github.com/golang/glog"
 	"io/ioutil"
 	"k8s.io/api/admission/v1"
@@ -42,7 +41,6 @@ func (webhookServer *WebhookServer) dispatch(response http.ResponseWriter, reque
 			},
 		}
 	} else {
-		fmt.Println(request.URL.Path)
 		if request.URL.Path == "/mutate" {
 			admissionResponse = webhookServer.mutate(&admissionReview)
 		} else if request.URL.Path == "/validate" {
@@ -56,9 +54,17 @@ func (webhookServer *WebhookServer) dispatch(response http.ResponseWriter, reque
 }
 
 func (webhookServer WebhookServer) mutate(admissionReview *v1.AdmissionReview) *v1.AdmissionResponse {
-	return nil
+	response := &v1.AdmissionResponse{
+		UID:     admissionReview.Request.UID,
+		Allowed: true,
+	}
+	return response
 }
 
 func (webhookServer *WebhookServer) validate(admissionReview *v1.AdmissionReview) *v1.AdmissionResponse {
-	return nil
+	response := &v1.AdmissionResponse{
+		UID:     admissionReview.Request.UID,
+		Allowed: true,
+	}
+	return response
 }
