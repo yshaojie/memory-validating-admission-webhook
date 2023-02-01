@@ -3,12 +3,12 @@ kind: MutatingWebhookConfiguration
 metadata:
   name: mutating-webhook-example-cfg
   labels:
-    app: admission-webhook-example
+    app: memory-validating-webhook
 webhooks:
   - name: mutating-example.qikqiak.com
     clientConfig:
       service:
-        name: admission-webhook-example-svc
+        name: memory-validating-webhook-svc
         namespace: default
         path: "/mutate"
       caBundle: ${CA_BUNDLE}
@@ -19,4 +19,4 @@ webhooks:
         resources: ["deployments","services"]
     namespaceSelector:
       matchLabels:
-        admission-webhook-example: enabled
+        memory-validating-webhook: enabled

@@ -3,12 +3,12 @@ kind: ValidatingWebhookConfiguration
 metadata:
   name: validation-webhook-example-cfg
   labels:
-    app: admission-webhook-example
+    app: memory-validating-webhook
 webhooks:
   - name: required-labels.qikqiak.com
     clientConfig:
       service:
-        name: admission-webhook-example-svc
+        name: memory-validating-webhook-svc
         namespace: default
         path: "/validate"
       caBundle: ${CA_BUNDLE}
@@ -19,4 +19,4 @@ webhooks:
         resources: ["deployments","services"]
     namespaceSelector:
       matchLabels:
-        admission-webhook-example: enabled
+        memory-validating-webhook: enabled

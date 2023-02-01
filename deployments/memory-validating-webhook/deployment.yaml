@@ -1,23 +1,23 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: admission-webhook-example-deployment
+  name: memory-validating-webhook-deployment
   labels:
-    app: admission-webhook-example
+    app: memory-validating-webhook
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: admission-webhook-example
+      app: memory-validating-webhook
   template:
     metadata:
       labels:
-        app: admission-webhook-example
+        app: memory-validating-webhook
     spec:
-      serviceAccountName: admission-webhook-example-sa
+      serviceAccountName: memory-validating-webhook-sa
       containers:
-        - name: admission-webhook-example
-          image: kimoqi/admission-webhook-example:v1
+        - name: memory-validating-webhook
+          image: kimoqi/memory-validating-webhook:v1
           imagePullPolicy: Always
           args:
             - -tlsCertFile=/etc/webhook/certs/cert.pem
@@ -32,4 +32,4 @@ spec:
       volumes:
         - name: webhook-certs
           secret:
-            secretName: admission-webhook-example-certs
+            secretName: memory-validating-webhook-certs

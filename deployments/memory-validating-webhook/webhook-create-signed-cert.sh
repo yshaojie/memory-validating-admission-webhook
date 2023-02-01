@@ -41,8 +41,8 @@ while [[ $# -gt 0 ]]; do
     shift
 done
 
-[ -z ${service} ] && service=admission-webhook-example-svc
-[ -z ${secret} ] && secret=admission-webhook-example-certs
+[ -z ${service} ] && service=memory-validating-webhook-svc
+[ -z ${secret} ] && secret=memory-validating-webhook-certs
 [ -z ${namespace} ] && namespace=default
 
 if [ ! -x "$(command -v openssl)" ]; then
