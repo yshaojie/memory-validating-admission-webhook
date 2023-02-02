@@ -17,8 +17,8 @@ spec:
       serviceAccountName: memory-validating-webhook-sa
       containers:
         - name: memory-validating-webhook
-          image: kimoqi/memory-validating-webhook:v1
-          imagePullPolicy: Always
+          image: docker.io/yshaojie/memory-validating-webhook:v1
+          imagePullPolicy: IfNotPresent
           args:
             - -tlsCertFile=/etc/webhook/certs/cert.pem
             - -tlsKeyFile=/etc/webhook/certs/key.pem
