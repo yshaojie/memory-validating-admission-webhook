@@ -1,7 +1,7 @@
-apiVersion: admissionregistration.k8s.io/v1beta1
+apiVersion: admissionregistration.k8s.io/v1
 kind: ValidatingWebhookConfiguration
 metadata:
-  name: validation-webhook-example-cfg
+  name: memory-validating-webhook
   labels:
     app: memory-validating-webhook
 webhooks:
@@ -16,7 +16,9 @@ webhooks:
       - operations: [ "CREATE" ]
         apiGroups: ["apps", ""]
         apiVersions: ["v1"]
-        resources: ["deployments","services"]
+        resources: ["deployments","services","pods"]
     namespaceSelector:
       matchLabels:
         memory-validating-webhook: enabled
+    admissionReviewVersions: ["v1","v1beta1"]
+    sideEffects: None

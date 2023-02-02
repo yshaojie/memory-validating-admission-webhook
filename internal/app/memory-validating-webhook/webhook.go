@@ -30,7 +30,7 @@ func (webhookServer *WebhookServer) dispatch(response http.ResponseWriter, reque
 	if err != nil {
 		body = data
 	}
-
+	glog.Infoln(string(body))
 	admissionReview := v1.AdmissionReview{}
 	var admissionResponse *v1.AdmissionResponse
 	if _, _, err := deserializer.Decode(body, nil, &admissionReview); err != nil {
