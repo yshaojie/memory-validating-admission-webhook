@@ -3,6 +3,7 @@ package main
 import (
 	"crypto/tls"
 	"flag"
+	"fmt"
 	"github.com/golang/glog"
 	"golang.org/x/net/context"
 	"net/http"
@@ -30,7 +31,7 @@ func main() {
 
 	webhookServer := &WebhookServer{
 		server: &http.Server{
-			Addr:      ":8080",
+			Addr:      fmt.Sprintf(":%v", parameters.port),
 			TLSConfig: &tls.Config{Certificates: []tls.Certificate{pair}},
 		},
 	}
@@ -40,7 +41,7 @@ func main() {
 	mux.HandleFunc("/validate", webhookServer.dispatch)
 	webhookServer.server.Handler = mux
 	go func() {
-		if error := webhookServer.server.ListenAndServe(); error != nil {
+		if error := webhookServer.server.ListenAndServeTLS(parameters.certFile, parameters.keyFile); error != nil {
 			glog.Error("Failed to listen and serve webhook server: %v", error)
 		}
 	}()

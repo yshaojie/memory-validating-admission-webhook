@@ -90,8 +90,8 @@ spec:
   usages:
   - digital signature
   - key encipherment
-  - client auth
-  signerName: kubernetes.io/kube-apiserver-client
+  - server auth
+  signerName: kubernetes.io/kubelet-serving
   expirationSeconds: 86400  # one day
 EOF
 
@@ -124,5 +124,5 @@ echo ${serverCert} | openssl base64 -d -A -out ${tmpdir}/server-cert.pem
 kubectl create secret generic ${secret} \
         --from-file=key.pem=${tmpdir}/server-key.pem \
         --from-file=cert.pem=${tmpdir}/server-cert.pem \
-        --dry-run -o yaml |
+        --dry-run=client -o yaml |
     kubectl -n ${namespace} apply -f -

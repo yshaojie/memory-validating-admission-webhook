@@ -5,7 +5,7 @@ metadata:
   labels:
     app: memory-validating-webhook
 webhooks:
-  - name: required-labels.qikqiak.com
+  - name: my-webhook.example.com
     clientConfig:
       service:
         name: memory-validating-webhook-svc
@@ -22,3 +22,9 @@ webhooks:
         memory-validating-webhook: enabled
     admissionReviewVersions: ["v1","v1beta1"]
     sideEffects: None
+    objectSelector:
+      matchExpressions:
+        - key: app
+          operator: NotIn
+          values:
+            - "memory-validating-webhook"
