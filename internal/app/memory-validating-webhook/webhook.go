@@ -57,7 +57,7 @@ func (webhookServer *WebhookServer) Dispatch(response http.ResponseWriter, reque
 	responseBytes, _ := json.Marshal(admissionReview)
 	glog.Infoln(string(responseBytes))
 
-	response.WriteHeader(200)
+	response.WriteHeader(http.StatusOK)
 	response.Header().Add("Content-Type", "application/json")
 	response.Write(responseBytes)
 }
