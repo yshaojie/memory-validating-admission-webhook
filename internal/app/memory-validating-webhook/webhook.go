@@ -26,9 +26,14 @@ type WebhookServer struct {
 
 func (webhookServer *WebhookServer) dispatch(response http.ResponseWriter, request *http.Request) {
 	var body []byte
-	data, err := ioutil.ReadAll(request.Body)
-	if err != nil {
-		body = data
+	if request.Body != nil {
+		if data, err := ioutil.ReadAll(request.Body); err == nil {
+			body = data
+		}
+	}
+	if body == nil {
+		http.Error(response, "request body is empty", http.StatusBadRequest)
+		return
 	}
 	glog.Infoln(string(body))
 	admissionReview := v1.AdmissionReview{}
@@ -47,7 +52,7 @@ func (webhookServer *WebhookServer) dispatch(response http.ResponseWriter, reque
 			admissionResponse = webhookServer.validate(&admissionReview)
 		}
 	}
-	responseBytes, err := json.Marshal(&admissionResponse)
+	responseBytes, _ := json.Marshal(&admissionResponse)
 	response.WriteHeader(200)
 	response.Header().Add("Content-Type", "application/json")
 	response.Write(responseBytes)

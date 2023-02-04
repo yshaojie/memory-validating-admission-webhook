@@ -55,24 +55,46 @@ echo "csrName=${csrName}"
 tmpdir=$(mktemp -d)
 echo "creating certs in tmpdir ${tmpdir} "
 
-cat <<EOF >> ${tmpdir}/csr.conf
-[req]
-req_extensions = v3_req
-distinguished_name = req_distinguished_name
-[req_distinguished_name]
-[ v3_req ]
-basicConstraints = CA:FALSE
-keyUsage = nonRepudiation, digitalSignature, keyEncipherment
-extendedKeyUsage = serverAuth
-subjectAltName = @alt_names
-[alt_names]
-DNS.1 = ${service}
-DNS.2 = ${service}.${namespace}
-DNS.3 = ${service}.${namespace}.svc
+#cat <<EOF >> ${tmpdir}/csr.conf
+#[req]
+#req_extensions = v3_req
+#distinguished_name = req_distinguished_name
+#[req_distinguished_name]
+#[ v3_req ]
+#basicConstraints = CA:FALSE
+#keyUsage = nonRepudiation, digitalSignature, keyEncipherment
+#extendedKeyUsage = serverAuth
+#subjectAltName = @alt_names
+#[alt_names]
+#DNS.1 = ${service}
+#DNS.2 = ${service}.${namespace}
+#DNS.3 = ${service}.${namespace}.svc
+#EOF
+#
+#openssl genrsa -out ${tmpdir}/server-key.pem 2048
+#openssl req -new -key ${tmpdir}/server-key.pem -subj "/CN=${service}.${namespace}.svc" -out ${tmpdir}/server.csr -config ${tmpdir}/csr.conf
+
+cat <<EOF | cfssl genkey - | cfssljson -bare server
+{
+  "hosts": [
+    "${service}.${namespace}.pod",
+    "${service}.${namespace}.pod.cluster.local",
+    "${service}.${namespace}.svc",
+    "${service}.${namespace}.svc.cluster.local"
+  ],
+  "CN": "system:node:${service}.${namespace}.pod.cluster.local",
+  "key": {
+    "algo": "ecdsa",
+    "size": 256
+  },
+  "names": [
+    {
+      "O": "system:nodes"
+    }
+  ]
+}
 EOF
 
-openssl genrsa -out ${tmpdir}/server-key.pem 2048
-openssl req -new -key ${tmpdir}/server-key.pem -subj "/CN=${service}.${namespace}.svc" -out ${tmpdir}/server.csr -config ${tmpdir}/csr.conf
 
 # clean-up any previously created CSR for our service. Ignore errors if not present.
 kubectl delete csr ${csrName} 2>/dev/null || true
@@ -86,12 +108,13 @@ metadata:
 spec:
   groups:
   - system:authenticated
-  request: $(cat ${tmpdir}/server.csr | base64 | tr -d '\n')
+  request: $(cat server.csr | base64 | tr -d '\n')
   usages:
   - digital signature
   - key encipherment
   - server auth
   signerName: kubernetes.io/kubelet-serving
+#  signerName: my-webhook.example.com/service
   expirationSeconds: 86400  # one day
 EOF
 
@@ -106,7 +129,7 @@ done
 # approve and fetch the signed certificate
 kubectl certificate approve ${csrName}
 # verify certificate has been signed
-for x in $(seq 10); do
+for x in $(seq 100); do
     serverCert=$(kubectl get csr ${csrName} -o jsonpath='{.status.certificate}')
     if [[ ${serverCert} != '' ]]; then
         break
@@ -117,12 +140,14 @@ if [[ ${serverCert} == '' ]]; then
     echo "ERROR: After approving csr ${csrName}, the signed certificate did not appear on the resource. Giving up after 10 attempts." >&2
     exit 1
 fi
-echo ${serverCert} | openssl base64 -d -A -out ${tmpdir}/server-cert.pem
+echo ${serverCert} | openssl base64 -d -A -out server-cert.pem
 
 
 # create the secret with CA cert and server cert/key
 kubectl create secret generic ${secret} \
-        --from-file=key.pem=${tmpdir}/server-key.pem \
-        --from-file=cert.pem=${tmpdir}/server-cert.pem \
+        --from-file=key.pem=server-key.pem \
+        --from-file=cert.pem=server-cert.pem \
         --dry-run=client -o yaml |
     kubectl -n ${namespace} apply -f -
+
+rm -f server.csr server-cert.pem server-key.pem
