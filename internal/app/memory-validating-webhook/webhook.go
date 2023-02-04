@@ -1,4 +1,4 @@
-package main
+package memory_validating_webhook
 
 import (
 	"github.com/golang/glog"
@@ -21,10 +21,10 @@ var (
 )
 
 type WebhookServer struct {
-	server *http.Server
+	Server *http.Server
 }
 
-func (webhookServer *WebhookServer) dispatch(response http.ResponseWriter, request *http.Request) {
+func (webhookServer *WebhookServer) Dispatch(response http.ResponseWriter, request *http.Request) {
 	var body []byte
 	if request.Body != nil {
 		if data, err := ioutil.ReadAll(request.Body); err == nil {

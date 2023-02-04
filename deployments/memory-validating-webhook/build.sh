@@ -1,5 +1,5 @@
 #!/bin/bash
-cd ../../internal/app/memory-validating-webhook
+cd ../../cmd/memory-validating-webhook
 #: ${DOCKER_USER:? required}
 
 export GO111MODULE=on
