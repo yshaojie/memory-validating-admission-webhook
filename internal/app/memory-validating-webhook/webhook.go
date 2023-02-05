@@ -135,26 +135,36 @@ func (webhookServer WebhookServer) mutate(admissionReview *v1.AdmissionReview) *
 
 func mutateDeployment(deploymentCopy *appsv1.Deployment) error {
 	containers := deploymentCopy.Spec.Template.Spec.Containers
+	fillCommonEnvVars(containers)
+	initContainers := deploymentCopy.Spec.Template.Spec.InitContainers
+	fillCommonEnvVars(initContainers)
+	bytes, _ := json.Marshal(deploymentCopy)
+	glog.Infoln(string(bytes))
+	return nil
+}
 
+func fillCommonEnvVars(containers []corev1.Container) error {
 	for i, container := range containers {
 		envVars := container.Env
 		for _, commonEnvVar := range commonEnvVars {
+			if hasEnvVar(container, commonEnvVar) {
+				continue
+			}
 			envVars = append(envVars, commonEnvVar)
 		}
 		containers[i].Env = envVars
 	}
 
-	initContainers := deploymentCopy.Spec.Template.Spec.InitContainers
-	for i, container := range initContainers {
-		envVars := container.Env
-		for _, commonEnvVar := range commonEnvVars {
-			envVars = append(envVars, commonEnvVar)
-		}
-		initContainers[i].Env = envVars
-	}
-	bytes, _ := json.Marshal(deploymentCopy)
-	glog.Infoln(string(bytes))
 	return nil
+}
+
+func hasEnvVar(container corev1.Container, checkEnvVar corev1.EnvVar) bool {
+	for _, envVar := range container.Env {
+		if envVar.Name == checkEnvVar.Name {
+			return true
+		}
+	}
+	return false
 }
 
 func (webhookServer *WebhookServer) validate(admissionReview *v1.AdmissionReview) *v1.AdmissionResponse {
