@@ -21,16 +21,47 @@ var (
 
 	// (https://github.com/kubernetes/kubernetes/issues/57982)
 	defaulter = runtime.ObjectDefaulter(runtimeScheme)
+
+	commonEnvVars = []corev1.EnvVar{{
+		Name: "K8S_WORK_NAME",
+		ValueFrom: &corev1.EnvVarSource{
+			FieldRef: &corev1.ObjectFieldSelector{
+				FieldPath: "spec.nodeName",
+			},
+		},
+	}, {
+		Name: "K8S_POD_NAME",
+		ValueFrom: &corev1.EnvVarSource{
+			FieldRef: &corev1.ObjectFieldSelector{
+				FieldPath: "metadata.name",
+			},
+		},
+	}, {
+		Name: "K8S_POD_NAMESPACE",
+		ValueFrom: &corev1.EnvVarSource{
+			FieldRef: &corev1.ObjectFieldSelector{
+				FieldPath: "metadata.namespace",
+			},
+		},
+	}, {
+		Name: "K8S_POD_IP",
+		ValueFrom: &corev1.EnvVarSource{
+			FieldRef: &corev1.ObjectFieldSelector{
+				FieldPath: "status.podIP",
+			},
+		},
+	}, {
+		Name: "K8S_WORK_IP",
+		ValueFrom: &corev1.EnvVarSource{
+			FieldRef: &corev1.ObjectFieldSelector{
+				FieldPath: "status.hostIP",
+			},
+		},
+	}}
 )
 
 type WebhookServer struct {
 	Server *http.Server
-}
-
-type patchOperation struct {
-	Op    string      `json:"op"`
-	Path  string      `json:"path"`
-	Value interface{} `json:"value,omitempty"`
 }
 
 func (webhookServer *WebhookServer) Dispatch(response http.ResponseWriter, request *http.Request) {
@@ -106,18 +137,21 @@ func mutateDeployment(deploymentCopy *appsv1.Deployment) error {
 	containers := deploymentCopy.Spec.Template.Spec.Containers
 
 	for i, container := range containers {
-		envVar := corev1.EnvVar{
-			Name: "K8S_POD_IP",
-			ValueFrom: &corev1.EnvVarSource{
-				FieldRef: &corev1.ObjectFieldSelector{
-					FieldPath: "status.podIP",
-				},
-			},
+		envVars := container.Env
+		for _, commonEnvVar := range commonEnvVars {
+			envVars = append(envVars, commonEnvVar)
 		}
-		containers[i].Env = append(container.Env, envVar)
+		containers[i].Env = envVars
 	}
-	aa, _ := json.Marshal(containers)
-	glog.Infoln(string(aa))
+
+	initContainers := deploymentCopy.Spec.Template.Spec.InitContainers
+	for i, container := range initContainers {
+		envVars := container.Env
+		for _, commonEnvVar := range commonEnvVars {
+			envVars = append(envVars, commonEnvVar)
+		}
+		initContainers[i].Env = envVars
+	}
 	bytes, _ := json.Marshal(deploymentCopy)
 	glog.Infoln(string(bytes))
 	return nil
