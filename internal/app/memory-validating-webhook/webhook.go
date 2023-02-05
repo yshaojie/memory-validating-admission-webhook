@@ -2,8 +2,11 @@ package memory_validating_webhook
 
 import (
 	"github.com/golang/glog"
+	"github.com/wI2L/jsondiff"
 	"io/ioutil"
 	"k8s.io/api/admission/v1"
+	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
@@ -22,6 +25,12 @@ var (
 
 type WebhookServer struct {
 	Server *http.Server
+}
+
+type patchOperation struct {
+	Op    string      `json:"op"`
+	Path  string      `json:"path"`
+	Value interface{} `json:"value,omitempty"`
 }
 
 func (webhookServer *WebhookServer) Dispatch(response http.ResponseWriter, request *http.Request) {
@@ -63,11 +72,62 @@ func (webhookServer *WebhookServer) Dispatch(response http.ResponseWriter, reque
 }
 
 func (webhookServer WebhookServer) mutate(admissionReview *v1.AdmissionReview) *v1.AdmissionResponse {
-	response := &v1.AdmissionResponse{
-		UID:     admissionReview.Request.UID,
-		Allowed: true,
+	var patchBytes []byte
+	request := admissionReview.Request
+	switch request.Kind.Kind {
+	case "Deployment":
+		var deployment appsv1.Deployment
+		glog.Infoln("raw=", string(request.Object.Raw))
+
+		if err := json.Unmarshal(request.Object.Raw, &deployment); err != nil {
+			return &v1.AdmissionResponse{
+				Result: &metav1.Status{
+					Message: err.Error(),
+				},
+			}
+		}
+		deploymentCopy := deployment.DeepCopy()
+		mutateDeployment(deploymentCopy)
+		patch, _ := jsondiff.Compare(deployment, deploymentCopy)
+		glog.Infoln("patchBytes=", string(patchBytes))
+		patchb, _ := json.Marshal(patch)
+		patchBytes = patchb
+	case "Pod":
+
 	}
-	return response
+	glog.Infoln(string(patchBytes))
+	return &v1.AdmissionResponse{
+		UID:     request.UID,
+		Allowed: true,
+		Patch:   patchBytes,
+		PatchType: func() *v1.PatchType {
+			pt := v1.PatchTypeJSONPatch
+			return &pt
+		}(),
+	}
+}
+
+func mutateDeployment(deploymentCopy *appsv1.Deployment) error {
+	containers := deploymentCopy.Spec.Template.Spec.Containers
+
+	for i, container := range containers {
+		envVar := corev1.EnvVar{
+			Name: "K8S_POD_IP",
+			ValueFrom: &corev1.EnvVarSource{
+				FieldRef: &corev1.ObjectFieldSelector{
+					FieldPath: "status.podIP",
+				},
+			},
+		}
+		glog.Infoln("------------------------------")
+		containers[i].Env = append(container.Env, envVar)
+		glog.Infoln("------------------------------", container.Env)
+	}
+	aa, _ := json.Marshal(containers)
+	glog.Infoln(string(aa))
+	bytes, _ := json.Marshal(deploymentCopy)
+	glog.Infoln(string(bytes))
+	return nil
 }
 
 func (webhookServer *WebhookServer) validate(admissionReview *v1.AdmissionReview) *v1.AdmissionResponse {

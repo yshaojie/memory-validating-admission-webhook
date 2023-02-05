@@ -12,3 +12,5 @@ export CA_BUNDLE=$(kubectl config view --raw --flatten -o json | jq -r '.cluster
 
 cat validatingwebhook.yaml | sed -e "s|\${CA_BUNDLE}|${CA_BUNDLE}|g" | kubectl apply -f -
 
+cat mutatingwebhook.yaml | sed -e "s|\${CA_BUNDLE}|${CA_BUNDLE}|g" | kubectl apply -f -
+
