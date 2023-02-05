@@ -65,7 +65,6 @@ func (webhookServer *WebhookServer) Dispatch(response http.ResponseWriter, reque
 	admissionReview.Response = admissionResponse
 	responseBytes, _ := json.Marshal(admissionReview)
 	glog.Infoln(string(responseBytes))
-
 	response.WriteHeader(http.StatusOK)
 	response.Header().Add("Content-Type", "application/json")
 	response.Write(responseBytes)
@@ -77,8 +76,6 @@ func (webhookServer WebhookServer) mutate(admissionReview *v1.AdmissionReview) *
 	switch request.Kind.Kind {
 	case "Deployment":
 		var deployment appsv1.Deployment
-		glog.Infoln("raw=", string(request.Object.Raw))
-
 		if err := json.Unmarshal(request.Object.Raw, &deployment); err != nil {
 			return &v1.AdmissionResponse{
 				Result: &metav1.Status{
@@ -89,13 +86,11 @@ func (webhookServer WebhookServer) mutate(admissionReview *v1.AdmissionReview) *
 		deploymentCopy := deployment.DeepCopy()
 		mutateDeployment(deploymentCopy)
 		patch, _ := jsondiff.Compare(deployment, deploymentCopy)
-		glog.Infoln("patchBytes=", string(patchBytes))
 		patchb, _ := json.Marshal(patch)
 		patchBytes = patchb
 	case "Pod":
 
 	}
-	glog.Infoln(string(patchBytes))
 	return &v1.AdmissionResponse{
 		UID:     request.UID,
 		Allowed: true,
@@ -119,9 +114,7 @@ func mutateDeployment(deploymentCopy *appsv1.Deployment) error {
 				},
 			},
 		}
-		glog.Infoln("------------------------------")
 		containers[i].Env = append(container.Env, envVar)
-		glog.Infoln("------------------------------", container.Env)
 	}
 	aa, _ := json.Marshal(containers)
 	glog.Infoln(string(aa))
