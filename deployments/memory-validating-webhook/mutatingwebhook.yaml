@@ -6,7 +6,8 @@ metadata:
     app: memory-validating-webhook
 webhooks:
   - name: my-webhook.example.com
-    sideEffects: None
+    sideEffects: NoneOnDryRun
+    matchPolicy: Equivalent
     admissionReviewVersions:
       - v1
       - v1beta1
@@ -22,8 +23,11 @@ webhooks:
         apiVersions: ["v1"]
         resources: ["deployments","services"]
     namespaceSelector:
-      matchLabels:
-        memory-validating-webhook: enabled
+      matchExpressions:
+        - key: kubernetes.io/metadata.name
+          operator: NotIn
+          values:
+            - kube-system
     objectSelector:
       matchExpressions:
         - key: app
