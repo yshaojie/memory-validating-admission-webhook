@@ -95,7 +95,7 @@ spec:
   - key encipherment
   - server auth
   signerName: kubernetes.io/kubelet-serving
-  expirationSeconds: 86400  # one day
+  expirationSeconds: 86400000
 EOF
 
 # verify CSR has been created
